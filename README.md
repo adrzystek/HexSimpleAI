@@ -1,5 +1,5 @@
-This project aims at creating a decent automated player (let's call it the "AI") at the game 
-of [hex](https://en.wikipedia.org/wiki/Hex_(board_game%29). Hopefully, one day it will be 
+This project aims at creating a decent automated player (let's call it an "AI") at the game 
+of [hex](https://en.wikipedia.org/wiki/Hex_(board_game)). Hopefully, one day it will be 
 implemented at my site [hexy.games](https://hexy.games/).
 
 For now it is the [negamax](https://en.wikipedia.org/wiki/Negamax) algorithm with 
