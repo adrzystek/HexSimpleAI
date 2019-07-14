@@ -134,3 +134,92 @@ def negamax_alpha_beta_pruned(
                 break
 
     return {'score': best_score, 'move': best_move}
+
+
+TRANSPOSITION_TABLE = {}
+
+
+def negamax_alpha_beta_pruned_with_transposition_tables(
+    player: int,
+    red_moves: Iterable[str],
+    blue_moves: Iterable[str],
+    last_move: str,
+    alpha: float,
+    beta: float,
+    size: int
+) -> Dict[str, int]:  # yapf: disable
+    """
+    Simple implementation of the negamax (minimax) algorithm for the game of hex. Includes an improvement
+    of alpha-beta pruning and transposition tables.
+
+    See tests for example usage.
+
+    :param player: the player to make a move(can be 1 or -1)
+    :param red_moves: already played moves of the red player
+    :param blue_moves: already played moves of the blue player
+    :param last_move: last played move
+    :param alpha: the minimum score that the maximizing player is assured of
+    :param beta: the maximum score that the minimizing player is assured of
+    :param size: size of the board
+    :return: dict with results for score and move; the score is given from the perspective of the player who is about
+    to play (so score == 1 when player == -1 means that player "-1" won)
+    """
+    alpha_orig = alpha
+
+    # transposition table lookup
+    tt_entry = TRANSPOSITION_TABLE.get((tuple(sorted(red_moves)), tuple(sorted(blue_moves))))
+    if tt_entry:
+        if tt_entry['flag'] == 'EXACT':
+            return {'score': tt_entry['value'], 'move': tt_entry['move']}
+        elif tt_entry['flag'] == 'LOWER_BOUND':
+            alpha = max(alpha, tt_entry['value'])
+        elif tt_entry['flag'] == 'UPPER_BOUND':
+            beta = min(beta, tt_entry['value'])
+        if alpha >= beta:
+            return {'score': tt_entry['value'], 'move': tt_entry['move']}
+
+    # print(f'player: {player}, red_moves: {red_moves}, blue_moves: {blue_moves}, last_move: {last_move}')
+    winner = get_winner(red_moves, blue_moves, last_move, size)
+    if winner:
+        return {'score': winner * player, 'move': None}
+
+    best_score = -np.inf
+
+    for move in range(size**2):
+        row = move // size
+        col = move % size
+        position = chr(col + 1 + 96) + str(1 + row)
+        # print(f'position: {position}, player: {player}')
+        if position not in red_moves + blue_moves:
+            # print('!')
+            copied_red_moves = red_moves.copy()
+            copied_blue_moves = blue_moves.copy()
+            if player == 1:
+                copied_red_moves.append(position)
+            else:
+                copied_blue_moves.append(position)
+            result = negamax_alpha_beta_pruned_with_transposition_tables(
+                -player, copied_red_moves, copied_blue_moves, position, -beta, -alpha, size)
+            score = -result['score']
+            if score > best_score:
+                # print(f'score: {score}')
+                best_score = score
+                best_move = (row, col)
+            alpha = max(alpha, score)
+            if alpha >= beta:
+                break
+
+    # transposition table store
+    if best_score <= alpha_orig:
+        flag = 'UPPER_BOUND'
+    elif best_score >= beta:
+        flag = 'LOWER_BOUND'
+    else:
+        flag = 'EXACT'
+    TRANSPOSITION_TABLE[(tuple(sorted(red_moves)), tuple(sorted(blue_moves)))] = {
+        'value': best_score,
+        'flag': flag,
+        'move': best_move
+    }
+
+    return {'score': best_score, 'move': best_move}

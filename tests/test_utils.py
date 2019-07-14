@@ -1,8 +1,10 @@
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 
-from scripts.utils import (get_hex_neighbourhood, check_if_connects_to_nth_row, check_if_connects_to_nth_column,
-                           get_winner, negamax_alpha_beta_pruned)
+from scripts.utils import get_hex_neighbourhood, get_winner
+from scripts.utils import negamax_alpha_beta_pruned_with_transposition_tables as negamax
 
 
 # a1  b1  c1
@@ -13,6 +15,7 @@ from scripts.utils import (get_hex_neighbourhood, check_if_connects_to_nth_row, 
 #  a2  b2  c2  d2
 #   a3  b3  c3  d3
 #    a4  b4  c4  d4
+
 
 @pytest.mark.parametrize("position, neighbours", [
     ('b2', ['b1', 'c1', 'c2', 'b3', 'a3', 'a2']),
@@ -48,6 +51,7 @@ def test_get_winner(red_moves, blue_moves, last_move, size, winner):
     assert get_winner(red_moves, blue_moves, last_move, size) == winner
 
 
+@patch.dict('scripts.utils.TRANSPOSITION_TABLE', {})
 @pytest.mark.parametrize("player, red_moves, blue_moves, last_move, size, score", [
     (
         1,
@@ -162,11 +166,12 @@ def test_get_winner(red_moves, blue_moves, last_move, size, winner):
         1
     ),
 ])
-def test_negamax_alpha_beta_pruned_predicts_score(player, red_moves, blue_moves, last_move, size, score):
+def test_negamax_predicts_score(player, red_moves, blue_moves, last_move, size, score):
     alpha, beta = -np.inf, np.inf
-    assert negamax_alpha_beta_pruned(player, red_moves, blue_moves, last_move, alpha, beta, size)['score'] == score
+    assert negamax(player, red_moves, blue_moves, last_move, alpha, beta, size)['score'] == score
 
 
+@patch.dict('scripts.utils.TRANSPOSITION_TABLE', {})
 @pytest.mark.parametrize("player, red_moves, blue_moves, last_move, size, move", [
     (
         1,
@@ -178,13 +183,13 @@ def test_negamax_alpha_beta_pruned_predicts_score(player, red_moves, blue_moves,
     ),
     (
         1,
-        ['b1', 'a3'],
-        ['c2', 'b2'],
-        'b2',
+        ['c1', 'b3'],
+        ['c2', 'c3', 'a2'],
+        'a2',
         4,
-        (1, 0)
+        (1, 1)
     ),
 ])
-def test_negamax_alpha_beta_pruned_predicts_move(player, red_moves, blue_moves, last_move, size, move):
+def test_negamax_predicts_move(player, red_moves, blue_moves, last_move, size, move):
     alpha, beta = -np.inf, np.inf
-    assert negamax_alpha_beta_pruned(player, red_moves, blue_moves, last_move, alpha, beta, size)['move'] == move
+    assert negamax(player, red_moves, blue_moves, last_move, alpha, beta, size)['move'] == move
