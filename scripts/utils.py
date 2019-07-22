@@ -1,9 +1,31 @@
-from typing import AbstractSet, Dict, Iterable, List, Optional
+from typing import AbstractSet, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 
 
-def get_hex_neighbourhood(position: str) -> List[str]:
+def encode_position(position: str) -> Tuple[int, int]:
+    """
+    Convert board coordinates from human-readable to computer-friendly.
+
+    For example, 'a2' becomes (1, 0).
+    """
+    row = int(position[1:]) - 1
+    col = ord(position[0]) - 96 - 1
+    return row, col
+
+
+def decode_position(position: Tuple[int, int]) -> str:
+    """
+    Convert board coordinates from computer-friendly to human-readable.
+
+    For example, (1, 0) becomes 'a2'.
+    """
+    row, col = position
+    new_position = chr(col + 1 + 96) + str(1 + row)
+    return new_position
+
+
+def get_hex_neighbourhood(position: Tuple[int, int]) -> List[Tuple[int, int]]:
     """
     Returns coordinates of adjacent hexes.
 
@@ -11,63 +33,61 @@ def get_hex_neighbourhood(position: str) -> List[str]:
     some returned positions will be invalid. This, however, is not a problem having taken the fact as this function
     is used.
     """
-    column = ord(position[0]) - 96
-    row = int(position[1:])
-    a = chr(column + 1 + 96) + str(row - 1)
-    b = chr(column + 1 + 96) + str(row)
-    c = chr(column + 96) + str(row + 1)
-    d = chr(column - 1 + 96) + str(row + 1)
-    e = chr(column - 1 + 96) + str(row)
-    f = chr(column + 96) + str(row - 1)
+    row, col = position
+    a = (row-1, col+1)
+    b = (row, col+1)
+    c = (row+1, col)
+    d = (row+1, col-1)
+    e = (row, col-1)
+    f = (row-1, col)
     return [a, b, c, d, e, f]
 
 
-def check_basic_win_condition_for_red_player(list_of_moves: Iterable[str], size: int) -> bool:
-    rows = set([move[1:] for move in list_of_moves])
+def check_basic_win_condition_for_red_player(list_of_moves: Iterable[Tuple[int, int]], size: int) -> bool:
+    rows = set([move[0] for move in list_of_moves])
     return len(rows) == size
 
 
-def check_basic_win_condition_for_blue_player(list_of_moves: Iterable[str], size: int) -> bool:
-    cols = set([move[0] for move in list_of_moves])
+def check_basic_win_condition_for_blue_player(list_of_moves: Iterable[Tuple[int, int]], size: int) -> bool:
+    cols = set([move[1] for move in list_of_moves])
     return len(cols) == size
 
 
-def check_if_connects_to_nth_row(move: str, list_of_moves: Iterable[str], row_number: int,
+def check_if_connects_to_nth_row(move: Tuple[int, int], list_of_moves: Iterable[Tuple[int, int]], row_number: int,
                                  checked_hexes: AbstractSet[str]) -> Optional[bool]:
     hexes_to_check = {*get_hex_neighbourhood(move)} & {*list_of_moves}
     for _hex in hexes_to_check:
         if _hex not in checked_hexes:
             checked_hexes.add(_hex)
-            if int(_hex[1:]) == row_number:
+            if _hex[0] == row_number:
                 return True
             else:
                 if check_if_connects_to_nth_row(_hex, list_of_moves, row_number, checked_hexes):
                     return True
 
 
-def check_if_connects_to_nth_column(move: str, list_of_moves: Iterable[str], col_number: int,
+def check_if_connects_to_nth_column(move: Tuple[int, int], list_of_moves: Iterable[Tuple[int, int]], col_number: int,
                                     checked_hexes: AbstractSet[str]) -> Optional[bool]:
     hexes_to_check = {*get_hex_neighbourhood(move)} & {*list_of_moves}
     for _hex in hexes_to_check:
         if _hex not in checked_hexes:
             checked_hexes.add(_hex)
-            if ord(_hex[0]) - 96 == col_number:
+            if _hex[1] == col_number:
                 return True
             else:
                 if check_if_connects_to_nth_column(_hex, list_of_moves, col_number, checked_hexes):
                     return True
 
 
-def get_winner(red_moves: Iterable[str], blue_moves: Iterable[str], last_move: str, size: int) -> Optional[int]:
+def get_winner(red_moves: Iterable[Tuple[int, int]], blue_moves: Iterable[Tuple[int, int]], last_move: Tuple[int, int],
+               size: int) -> Optional[int]:
     if last_move in red_moves and check_basic_win_condition_for_red_player(red_moves, size):
-        a = check_if_connects_to_nth_row(last_move, red_moves, 1, set())
-        b = check_if_connects_to_nth_row(last_move, red_moves, size, set())
-        if a and b:
+        if (check_if_connects_to_nth_row(last_move, red_moves, 0, set()) and
+                check_if_connects_to_nth_row(last_move, red_moves, size-1, set())):
             return 1
     elif last_move in blue_moves and check_basic_win_condition_for_blue_player(blue_moves, size):
-        a = check_if_connects_to_nth_column(last_move, blue_moves, 1, set())
-        b = check_if_connects_to_nth_column(last_move, blue_moves, size, set())
-        if a and b:
+        if (check_if_connects_to_nth_column(last_move, blue_moves, 0, set()) and
+                check_if_connects_to_nth_column(last_move, blue_moves, size-1, set())):
             return -1
 
 
@@ -96,7 +116,6 @@ def negamax_alpha_beta_pruned(
     :return: dict with results for score and move; the score is given from the perspective of the player who is about
     to play (so score == 1 when player == -1 means that player "-1" won)
     """
-    # print(f'player: {player}, red_moves: {red_moves}, blue_moves: {blue_moves}, last_move: {last_move}')
     winner = get_winner(red_moves, blue_moves, last_move, size)
     if winner:
         return {'score': winner * player, 'move': None}
@@ -107,9 +126,7 @@ def negamax_alpha_beta_pruned(
         row = move // size
         col = move % size
         position = chr(col + 1 + 96) + str(1 + row)
-        # print(f'position: {position}, player: {player}')
         if position not in red_moves + blue_moves:
-            # print('!')
             copied_red_moves = red_moves.copy()
             copied_blue_moves = blue_moves.copy()
             if player == 1:
@@ -120,7 +137,6 @@ def negamax_alpha_beta_pruned(
                                                size)
             score = -result['score']
             if score > best_score:
-                # print(f'score: {score}')
                 best_score = score
                 best_move = (row, col)
             alpha = max(alpha, score)
@@ -135,9 +151,9 @@ TRANSPOSITION_TABLE = {}
 
 def negamax_alpha_beta_pruned_with_transposition_tables(
     player: int,
-    red_moves: Iterable[str],
-    blue_moves: Iterable[str],
-    last_move: str,
+    red_moves: Iterable[Tuple[int, int]],
+    blue_moves: Iterable[Tuple[int, int]],
+    last_move: Tuple[int, int],
     alpha: float,
     beta: float,
     size: int
@@ -172,7 +188,6 @@ def negamax_alpha_beta_pruned_with_transposition_tables(
         if alpha >= beta:
             return {'score': tt_entry['value'], 'move': tt_entry['move']}
 
-    # print(f'player: {player}, red_moves: {red_moves}, blue_moves: {blue_moves}, last_move: {last_move}')
     winner = get_winner(red_moves, blue_moves, last_move, size)
     if winner:
         return {'score': winner * player, 'move': None}
@@ -182,10 +197,8 @@ def negamax_alpha_beta_pruned_with_transposition_tables(
     for move in range(size**2):
         row = move // size
         col = move % size
-        position = chr(col + 1 + 96) + str(1 + row)
-        # print(f'position: {position}, player: {player}')
+        position = (row, col)
         if position not in red_moves + blue_moves:
-            # print('!')
             copied_red_moves = red_moves.copy()
             copied_blue_moves = blue_moves.copy()
             if player == 1:
@@ -196,7 +209,6 @@ def negamax_alpha_beta_pruned_with_transposition_tables(
                 -player, copied_red_moves, copied_blue_moves, position, -beta, -alpha, size)
             score = -result['score']
             if score > best_score:
-                # print(f'score: {score}')
                 best_score = score
                 best_move = (row, col)
             alpha = max(alpha, score)

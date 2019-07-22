@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from scripts.utils import (check_basic_win_condition_for_blue_player, check_basic_win_condition_for_red_player,
-                           get_hex_neighbourhood, get_winner)
+                           encode_position, get_hex_neighbourhood, get_winner)
 from scripts.utils import negamax_alpha_beta_pruned_with_transposition_tables as negamax
 
 
@@ -29,6 +29,7 @@ from scripts.utils import negamax_alpha_beta_pruned_with_transposition_tables as
     (['a1', 'b2', 'c3', 'd2', 'd3'], 5, False),
 ])
 def test_check_basic_win_condition_for_blue_player(list_of_moves, size, is_fulfilled):
+    list_of_moves = list(map(encode_position, list_of_moves))
     assert check_basic_win_condition_for_blue_player(list_of_moves, size) == is_fulfilled
 
 
@@ -43,6 +44,7 @@ def test_check_basic_win_condition_for_blue_player(list_of_moves, size, is_fulfi
     (['a1', 'b2', 'c3', 'b4', 'a4'], 5, False),
 ])
 def test_check_basic_win_condition_for_red_player(list_of_moves, size, is_fulfilled):
+    list_of_moves = list(map(encode_position, list_of_moves))
     assert check_basic_win_condition_for_red_player(list_of_moves, size) == is_fulfilled
 
 
@@ -50,6 +52,8 @@ def test_check_basic_win_condition_for_red_player(list_of_moves, size, is_fulfil
     ('b2', ['b1', 'c1', 'c2', 'b3', 'a3', 'a2']),
 ])
 def test_get_hex_neighbourhood(position, neighbours):
+    position = encode_position(position)
+    neighbours = list(map(encode_position, neighbours))
     assert set(get_hex_neighbourhood(position)) == set(neighbours)
 
 
@@ -74,9 +78,19 @@ def test_get_hex_neighbourhood(position, neighbours):
         'a1',
         3,
         None
-    )
+    ),
+    (
+        [],
+        ['c1'],
+        'c1',
+        3,
+        None
+    ),
 ])
 def test_get_winner(red_moves, blue_moves, last_move, size, winner):
+    red_moves = list(map(encode_position, red_moves))
+    blue_moves = list(map(encode_position, blue_moves))
+    last_move = encode_position(last_move)
     assert get_winner(red_moves, blue_moves, last_move, size) == winner
 
 
@@ -196,6 +210,9 @@ def test_get_winner(red_moves, blue_moves, last_move, size, winner):
     ),
 ])
 def test_negamax_predicts_score(player, red_moves, blue_moves, last_move, size, score):
+    red_moves = list(map(encode_position, red_moves))
+    blue_moves = list(map(encode_position, blue_moves))
+    last_move = encode_position(last_move) if last_move else tuple()
     alpha, beta = -np.inf, np.inf
     assert negamax(player, red_moves, blue_moves, last_move, alpha, beta, size)['score'] == score
 
@@ -220,5 +237,8 @@ def test_negamax_predicts_score(player, red_moves, blue_moves, last_move, size, 
     ),
 ])
 def test_negamax_predicts_move(player, red_moves, blue_moves, last_move, size, move):
+    red_moves = list(map(encode_position, red_moves))
+    blue_moves = list(map(encode_position, blue_moves))
+    last_move = encode_position(last_move)
     alpha, beta = -np.inf, np.inf
     assert negamax(player, red_moves, blue_moves, last_move, alpha, beta, size)['move'] == move

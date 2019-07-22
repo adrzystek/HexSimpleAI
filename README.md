@@ -7,8 +7,7 @@ the improvements of [alpa-beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%8
 and [transposition tables](https://en.wikipedia.org/wiki/Transposition_table). Heuristics are 
 on the way!
 
-Plays perfectly on board size 4x4 (thinking time up to 90 seconds on 
-an ordinary personal computer).
+Plays perfectly on board size 4x4 (thinking time up to 50 seconds on an ordinary notebook).
 
 Take a look at [tests](https://github.com/adrzystek/HexSimpleAI/blob/master/tests/test_utils.py) 
 for examples of use.
