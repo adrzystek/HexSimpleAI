@@ -22,18 +22,12 @@ def get_hex_neighbourhood(position: str) -> List[str]:
     return [a, b, c, d, e, f]
 
 
-def check_basic_win_condition_for_row_player(list_of_moves: Iterable[str], size: int) -> bool:
-    """
-    Currently not used.
-    """
+def check_basic_win_condition_for_red_player(list_of_moves: Iterable[str], size: int) -> bool:
     rows = set([move[1:] for move in list_of_moves])
     return len(rows) == size
 
 
-def check_basic_win_condition_for_column_player(list_of_moves: Iterable[str], size: int) -> bool:
-    """
-    Currently not used.
-    """
+def check_basic_win_condition_for_blue_player(list_of_moves: Iterable[str], size: int) -> bool:
     cols = set([move[0] for move in list_of_moves])
     return len(cols) == size
 
@@ -65,12 +59,12 @@ def check_if_connects_to_nth_column(move: str, list_of_moves: Iterable[str], col
 
 
 def get_winner(red_moves: Iterable[str], blue_moves: Iterable[str], last_move: str, size: int) -> Optional[int]:
-    if last_move in red_moves:
+    if last_move in red_moves and check_basic_win_condition_for_red_player(red_moves, size):
         a = check_if_connects_to_nth_row(last_move, red_moves, 1, set())
         b = check_if_connects_to_nth_row(last_move, red_moves, size, set())
         if a and b:
             return 1
-    elif last_move in blue_moves:
+    elif last_move in blue_moves and check_basic_win_condition_for_blue_player(blue_moves, size):
         a = check_if_connects_to_nth_column(last_move, blue_moves, 1, set())
         b = check_if_connects_to_nth_column(last_move, blue_moves, size, set())
         if a and b:

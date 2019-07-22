@@ -3,7 +3,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from scripts.utils import get_hex_neighbourhood, get_winner
+from scripts.utils import (check_basic_win_condition_for_blue_player, check_basic_win_condition_for_red_player,
+                           get_hex_neighbourhood, get_winner)
 from scripts.utils import negamax_alpha_beta_pruned_with_transposition_tables as negamax
 
 
@@ -15,6 +16,34 @@ from scripts.utils import negamax_alpha_beta_pruned_with_transposition_tables as
 #  a2  b2  c2  d2
 #   a3  b3  c3  d3
 #    a4  b4  c4  d4
+
+
+@pytest.mark.parametrize("list_of_moves, size, is_fulfilled", [
+    ([], 1, False),
+    ([], 5, False),
+    (['a1'], 1, True),
+    (['a1'], 2, False),
+    (['a1', 'a2'], 2, False),
+    (['a1', 'b1'], 2, True),
+    (['a1', 'b2', 'c3', 'd2', 'e1'], 5, True),
+    (['a1', 'b2', 'c3', 'd2', 'd3'], 5, False),
+])
+def test_check_basic_win_condition_for_blue_player(list_of_moves, size, is_fulfilled):
+    assert check_basic_win_condition_for_blue_player(list_of_moves, size) == is_fulfilled
+
+
+@pytest.mark.parametrize("list_of_moves, size, is_fulfilled", [
+    ([], 1, False),
+    ([], 5, False),
+    (['a1'], 1, True),
+    (['a1'], 2, False),
+    (['a1', 'b1'], 2, False),
+    (['a1', 'a2'], 2, True),
+    (['a1', 'b2', 'c3', 'b4', 'a5'], 5, True),
+    (['a1', 'b2', 'c3', 'b4', 'a4'], 5, False),
+])
+def test_check_basic_win_condition_for_red_player(list_of_moves, size, is_fulfilled):
+    assert check_basic_win_condition_for_red_player(list_of_moves, size) == is_fulfilled
 
 
 @pytest.mark.parametrize("position, neighbours", [
