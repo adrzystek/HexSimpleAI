@@ -43,6 +43,11 @@ def get_hex_neighbourhood(position: Tuple[int, int]) -> List[Tuple[int, int]]:
     return [a, b, c, d, e, f]
 
 
+def get_valid_hex_neighbourhood(position: Tuple[int, int], size: int) -> List[Tuple[int, int]]:
+    all_adjacent_hexes = get_hex_neighbourhood(position)
+    return [hex for hex in all_adjacent_hexes if 0 <= hex[0] <= size-1 and 0 <= hex[1] <= size-1]
+
+
 def check_basic_win_condition_for_red_player(list_of_moves: Iterable[Tuple[int, int]], size: int) -> bool:
     rows = set([move[0] for move in list_of_moves])
     return len(rows) == size
@@ -91,6 +96,56 @@ def get_winner(red_moves: Iterable[Tuple[int, int]], blue_moves: Iterable[Tuple[
             return -1
 
 
+def get_available_positions(red_moves: Iterable[Tuple[int, int]], blue_moves: Iterable[Tuple[int, int]], size: int) -> List[Tuple[int, int]]:
+    available_positions = []
+    for move in range(size ** 2):
+        position = (move // size, move % size)
+        if position not in red_moves + blue_moves:
+            available_positions.append(position)
+    return available_positions
+
+
+def are_adjacent(position1, position2) -> bool:
+    row1, col1 = position1
+    row2, col2 = position2
+    if row1 == row2 and abs(col2 - col1) == 1 or col1 == col2 and abs(row2 - row1) == 1:
+        return True
+    return False
+
+
+RED_BORDER_CELLS = {
+    3: [(0, 0), (0, 1), (0, 2), (2, 0), (2, 1), (2, 2)],
+    4: [(0, 0), (0, 1), (0, 2), (0, 3), (3, 0), (3, 1), (3, 2), (3, 3)],
+    5: [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4)],
+}
+BLUE_BORDER_CELLS = {
+    3: [(0, 0), (1, 0), (2, 0), (0, 2), (1, 2), (2, 2)],
+    4: [(0, 0), (1, 0), (2, 0), (3, 0), (0, 3), (1, 3), (2, 3), (3, 3)],
+    5: [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (0, 4), (1, 4), (2, 4), (3, 4), (4, 4)],
+}
+
+
+def form_useless_triangle(position: Tuple[int, int], red_moves: Iterable[Tuple[int, int]],
+                          blue_moves: Iterable[Tuple[int, int]], player: int, size) -> bool:
+    if player == 1 and position not in RED_BORDER_CELLS[size]:
+        adjacent_hexes_all = get_valid_hex_neighbourhood(position, size)
+        if set(adjacent_hexes_all) & set(red_moves):
+            return False
+        unocupied_adjacent_hexes = set(adjacent_hexes_all) - set(blue_moves)
+        if (len(unocupied_adjacent_hexes) == 1 or len(unocupied_adjacent_hexes) == 2 and
+                are_adjacent(*unocupied_adjacent_hexes)):
+            return True
+    elif player == -1 and position not in BLUE_BORDER_CELLS[size]:
+        adjacent_hexes_all = get_valid_hex_neighbourhood(position, size)
+        if set(adjacent_hexes_all) & set(blue_moves):
+            return False
+        unocupied_adjacent_hexes = set(adjacent_hexes_all) - set(red_moves)
+        if (len(unocupied_adjacent_hexes) == 1 or len(unocupied_adjacent_hexes) == 2 and
+                are_adjacent(*unocupied_adjacent_hexes)):
+            return True
+    return False
+
+
 def negamax_alpha_beta_pruned(
     player: int,
     red_moves: Iterable[str],
@@ -104,9 +159,9 @@ def negamax_alpha_beta_pruned(
     Simple implementation of the negamax (minimax) algorithm for the game of hex. Includes an improvement
     of alpha-beta pruning.
 
-    See tests for an example usage.
+    See tests for example usage.
 
-    :param player: the player to make a move(can be 1 or -1)
+    :param player: the player to make a move (can be 1 or -1)
     :param red_moves: already played moves of the red player
     :param blue_moves: already played moves of the blue player
     :param last_move: last played move
@@ -164,7 +219,7 @@ def negamax_alpha_beta_pruned_with_transposition_tables(
 
     See tests for example usage.
 
-    :param player: the player to make a move(can be 1 or -1)
+    :param player: the player to make a move (can be 1 or -1)
     :param red_moves: already played moves of the red player
     :param blue_moves: already played moves of the blue player
     :param last_move: last played move
@@ -194,26 +249,26 @@ def negamax_alpha_beta_pruned_with_transposition_tables(
 
     best_score = -np.inf
 
-    for move in range(size**2):
-        row = move // size
-        col = move % size
-        position = (row, col)
-        if position not in red_moves + blue_moves:
-            copied_red_moves = red_moves.copy()
-            copied_blue_moves = blue_moves.copy()
-            if player == 1:
-                copied_red_moves.append(position)
-            else:
-                copied_blue_moves.append(position)
-            result = negamax_alpha_beta_pruned_with_transposition_tables(
-                -player, copied_red_moves, copied_blue_moves, position, -beta, -alpha, size)
-            score = -result['score']
-            if score > best_score:
-                best_score = score
-                best_move = (row, col)
-            alpha = max(alpha, score)
-            if alpha >= beta:
-                break
+    available_positions = get_available_positions(red_moves, blue_moves, size)
+    filtered_positions = [pos for pos in available_positions if not form_useless_triangle(
+        pos, red_moves, blue_moves, player, size)]
+
+    for position in filtered_positions:
+        copied_red_moves = red_moves.copy()
+        copied_blue_moves = blue_moves.copy()
+        if player == 1:
+            copied_red_moves.append(position)
+        else:
+            copied_blue_moves.append(position)
+        result = negamax_alpha_beta_pruned_with_transposition_tables(
+            -player, copied_red_moves, copied_blue_moves, position, -beta, -alpha, size)
+        score = -result['score']
+        if score > best_score:
+            best_score = score
+            best_move = position
+        alpha = max(alpha, score)
+        if alpha >= beta:
+            break
 
     # transposition table store
     if best_score <= alpha_orig:
