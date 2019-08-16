@@ -43,6 +43,14 @@ def get_hex_neighbourhood(position: Tuple[int, int]) -> List[Tuple[int, int]]:
     return [a, b, c, d, e, f]
 
 
+def get_valid_hex_neighbourhood(position: Tuple[int, int], size: int) -> List[Tuple[int, int]]:
+    # TODO write tests
+    """
+    Returns (only valid) coordinates of adjacent hexes.
+    """
+    return [_hex for _hex in get_hex_neighbourhood(position) if 0 <= _hex[0] <= size-1 and 0 <= _hex[1] <= size-1]
+
+
 def check_basic_win_condition_for_red_player(list_of_moves: Iterable[Tuple[int, int]], size: int) -> bool:
     rows = set([move[0] for move in list_of_moves])
     return len(rows) == size
@@ -91,6 +99,21 @@ def get_winner(red_moves: Iterable[Tuple[int, int]], blue_moves: Iterable[Tuple[
             return -1
 
 
+def get_available_positions(occupied_positions: Iterable[Tuple[int, int]], size: int) -> List[Tuple[int, int]]:
+    # TODO write tests
+    """
+    Returns available (legal) positions on the board.
+
+    Assumption: the board is symmetrical in size (so e.g. 11x11, not 10x11).
+    """
+    available_positions = []
+    for move in range(size ** 2):
+        position = (move // size, move % size)
+        if position not in occupied_positions:
+            available_positions.append(position)
+    return available_positions
+
+
 def negamax_alpha_beta_pruned(
     player: int,
     red_moves: Iterable[str],
@@ -104,9 +127,9 @@ def negamax_alpha_beta_pruned(
     Simple implementation of the negamax (minimax) algorithm for the game of hex. Includes an improvement
     of alpha-beta pruning.
 
-    See tests for an example usage.
+    See tests for example usage.
 
-    :param player: the player to make a move(can be 1 or -1)
+    :param player: the player to make a move (can be 1 or -1)
     :param red_moves: already played moves of the red player
     :param blue_moves: already played moves of the blue player
     :param last_move: last played move
@@ -122,26 +145,22 @@ def negamax_alpha_beta_pruned(
 
     best_score = -np.inf
 
-    for move in range(size**2):
-        row = move // size
-        col = move % size
-        position = chr(col + 1 + 96) + str(1 + row)
-        if position not in red_moves + blue_moves:
-            copied_red_moves = red_moves.copy()
-            copied_blue_moves = blue_moves.copy()
-            if player == 1:
-                copied_red_moves.append(position)
-            else:
-                copied_blue_moves.append(position)
-            result = negamax_alpha_beta_pruned(-player, copied_red_moves, copied_blue_moves, position, -beta, -alpha,
-                                               size)
-            score = -result['score']
-            if score > best_score:
-                best_score = score
-                best_move = (row, col)
-            alpha = max(alpha, score)
-            if alpha >= beta:
-                break
+    available_positions = get_available_positions(red_moves+blue_moves, size)
+    for position in available_positions:
+        copied_red_moves = red_moves.copy()
+        copied_blue_moves = blue_moves.copy()
+        if player == 1:
+            copied_red_moves.append(position)
+        else:
+            copied_blue_moves.append(position)
+        result = negamax_alpha_beta_pruned(-player, copied_red_moves, copied_blue_moves, position, -beta, -alpha, size)
+        score = -result['score']
+        if score > best_score:
+            best_score = score
+            best_move = position
+        alpha = max(alpha, score)
+        if alpha >= beta:
+            break
 
     return {'score': best_score, 'move': best_move}
 
@@ -164,7 +183,7 @@ def negamax_alpha_beta_pruned_with_transposition_tables(
 
     See tests for example usage.
 
-    :param player: the player to make a move(can be 1 or -1)
+    :param player: the player to make a move (can be 1 or -1)
     :param red_moves: already played moves of the red player
     :param blue_moves: already played moves of the blue player
     :param last_move: last played move
@@ -194,26 +213,23 @@ def negamax_alpha_beta_pruned_with_transposition_tables(
 
     best_score = -np.inf
 
-    for move in range(size**2):
-        row = move // size
-        col = move % size
-        position = (row, col)
-        if position not in red_moves + blue_moves:
-            copied_red_moves = red_moves.copy()
-            copied_blue_moves = blue_moves.copy()
-            if player == 1:
-                copied_red_moves.append(position)
-            else:
-                copied_blue_moves.append(position)
-            result = negamax_alpha_beta_pruned_with_transposition_tables(
-                -player, copied_red_moves, copied_blue_moves, position, -beta, -alpha, size)
-            score = -result['score']
-            if score > best_score:
-                best_score = score
-                best_move = (row, col)
-            alpha = max(alpha, score)
-            if alpha >= beta:
-                break
+    available_positions = get_available_positions(red_moves+blue_moves, size)
+    for position in available_positions:
+        copied_red_moves = red_moves.copy()
+        copied_blue_moves = blue_moves.copy()
+        if player == 1:
+            copied_red_moves.append(position)
+        else:
+            copied_blue_moves.append(position)
+        result = negamax_alpha_beta_pruned_with_transposition_tables(
+            -player, copied_red_moves, copied_blue_moves, position, -beta, -alpha, size)
+        score = -result['score']
+        if score > best_score:
+            best_score = score
+            best_move = position
+        alpha = max(alpha, score)
+        if alpha >= beta:
+            break
 
     # transposition table store
     if best_score <= alpha_orig:
